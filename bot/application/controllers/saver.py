@@ -61,9 +61,9 @@ class SaverController(BaseController):
                     )
                     json_file = file_response.model_dump()
                     print(json_file)
-                    file_info["file_unique_id"] = file_response.audio.file_unique_id
-                    file_info["file_id"] = file_response.audio.file_id
-                    file_info["file_info"] = json_file["audio"]
+                    file_info["file_unique_id"] = file_response.document.file_unique_id
+                    file_info["file_id"] = file_response.document.file_id
+                    file_info["file_info"] = json_file["document"]
                 else:
                     file_response: Message = await self._make_video_response(
                         file=result.file
