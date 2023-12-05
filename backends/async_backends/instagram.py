@@ -67,14 +67,14 @@ class AsyncInstagramBackend(AsyncAbstractBackend):
                 new_proxies[f"{port}"] = dict(active=active)
 
             self.redis.set("proxies", json.dumps(new_proxies))
-            return {"https": f"socks5://localhost:9050"}
+            return {"https": f"socks4://localhost:9050"}
         else:
             ports: Dict = json.loads(proxies.decode("ascii"))
             for port in ports:
                 if ports[port]["active"]:
                     ports[port]["active"] = False
                     self.redis.set("proxies", json.dumps(ports))
-                    return {"https": f"socks5://localhost:{port}"}
+                    return {"https": f"socks4://localhost:{port}"}
             requestor = RequestsTor(tor_ports=(9050,), tor_cport=9051)
             requestor.new_id()
             new_proxies = {}
@@ -85,7 +85,7 @@ class AsyncInstagramBackend(AsyncAbstractBackend):
                 new_proxies[f"{port}"] = dict(active=active)
 
             self.redis.set("proxies", json.dumps(new_proxies))
-            return {"https": f"socks5://localhost:9050"}
+            return {"https": f"socks4://localhost:9050"}
 
     async def _get_file(self, post) -> Dict:
         if post.is_video:
