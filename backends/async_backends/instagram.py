@@ -45,7 +45,7 @@ class AsyncInstagramBackend(AsyncAbstractBackend):
             db=int(os.environ["REDIS_DB"]),
         )
         proxies = self._get_proxies()
-        print(f"PROXIES: {proxies}")
+        self.logger.error(f"PROXIES: {proxies}")
         self.backend: Instaloader = Instaloader(
             sleep=True,
             rate_controller=lambda ctx: MyRateController(ctx),
