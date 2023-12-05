@@ -1,13 +1,11 @@
 FROM python:3.9.10-slim-bullseye as libs
 
 RUN apt-get -y update \
-    && apt-get -y install --no-install-recommends git gcc openssh-client libc6-dev \
-    && update-ca-certificates \
-    && mkdir -p -m 0600 ~/.ssh \
-    && ssh-keyscan gitlab.qiwi.uz >> ~/.ssh/known_hosts
+    && apt-get -y install --no-install-recommends git gcc libc6-dev \
+    && update-ca-certificates
 
 COPY requirements.txt .
-RUN --mount=type=ssh pip install -r requirements.txt
+RUN pip install -r requirements.txt
 
 FROM python:3.9.10-slim-bullseye
 
