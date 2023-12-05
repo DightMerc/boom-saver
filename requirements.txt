@@ -1,0 +1,12 @@
+pytube==15.0.0
+instaloader==4.10.1
+yandex_music==2.1.1
+mutagen==1.47.0
+httpx==0.25.1
+https://github.com/aiogram/aiogram/archive/refs/heads/dev-3.x.zip
+sqlalchemy
+alembic
+psycopg2-binary
+asyncpg
+greenlet
+orjson
