@@ -12,3 +12,4 @@ greenlet
 orjson
 requests_tor
 redis
+PySocks
