@@ -1,7 +1,10 @@
 import os
+import random
+import time
 import uuid
 from typing import Dict
 
+import instaloader
 import requests
 from instaloader import Instaloader, Post
 
@@ -15,13 +18,25 @@ class InstagramBackendResult(AbstractBackendResult):
         self.file = file
 
 
+class MyRateController(instaloader.RateController):
+    def sleep(self, secs: float):
+        time_to_sleep = random.randint(1, 3)
+        print(f"Time to sleep: {time_to_sleep}")
+        time.sleep(time_to_sleep)
+
+    def count_per_sliding_window(self, query_type):
+        return 20
+
+
 class SyncInstagramBackend(SyncAbstractBackend):
 
     BACKEND_URIS = ["instagram"]
 
     def __init__(self, link: str, path: str):
         self.link = link
-        self.backend: Instaloader = Instaloader()
+        self.backend: Instaloader = Instaloader(
+            rate_controller=lambda ctx: MyRateController(ctx)
+        )
         self.path = path
 
     def _get_file(self, post) -> Dict:
