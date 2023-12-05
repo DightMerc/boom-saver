@@ -44,6 +44,8 @@ class AsyncInstagramBackend(AsyncAbstractBackend):
             port=int(os.environ["REDIS_PORT"]),
             db=int(os.environ["REDIS_DB"]),
         )
+        proxies = self._get_proxies()
+        print(f"PROXIES: {proxies}")
         self.backend: Instaloader = Instaloader(
             sleep=True,
             rate_controller=lambda ctx: MyRateController(ctx),
@@ -52,7 +54,7 @@ class AsyncInstagramBackend(AsyncAbstractBackend):
             download_pictures=False,
             download_video_thumbnails=False,
             sanitize_paths=True,
-            proxies=self._get_proxies(),
+            proxies=proxies,
         )
         self.path = path
 
@@ -67,14 +69,20 @@ class AsyncInstagramBackend(AsyncAbstractBackend):
                 new_proxies[f"{port}"] = dict(active=active)
 
             self.redis.set("proxies", json.dumps(new_proxies))
-            return {"https": f"socks4://localhost:9050"}
+            return {
+                "https": f"socks4://localhost:9050",
+                "http": f"socks4://localhost:9050",
+            }
         else:
             ports: Dict = json.loads(proxies.decode("ascii"))
             for port in ports:
                 if ports[port]["active"]:
                     ports[port]["active"] = False
                     self.redis.set("proxies", json.dumps(ports))
-                    return {"https": f"socks4://localhost:{port}"}
+                    return {
+                        "https": f"socks4://localhost:{port}",
+                        "http": f"socks4://localhost:{port}",
+                    }
             requestor = RequestsTor(tor_ports=(9050,), tor_cport=9051)
             requestor.new_id()
             new_proxies = {}
@@ -85,7 +93,10 @@ class AsyncInstagramBackend(AsyncAbstractBackend):
                 new_proxies[f"{port}"] = dict(active=active)
 
             self.redis.set("proxies", json.dumps(new_proxies))
-            return {"https": f"socks4://localhost:9050"}
+            return {
+                "https": f"socks4://localhost:9050",
+                "http": f"socks4://localhost:9050",
+            }
 
     async def _get_file(self, post) -> Dict:
         if post.is_video:
