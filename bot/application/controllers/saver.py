@@ -60,6 +60,7 @@ class SaverController(BaseController):
                         file=result.file
                     )
                     json_file = file_response.model_dump()
+                    print(json_file)
                     file_info["file_unique_id"] = file_response.audio.file_unique_id
                     file_info["file_id"] = file_response.audio.file_id
                     file_info["file_info"] = json_file["audio"]
@@ -68,6 +69,7 @@ class SaverController(BaseController):
                         file=result.file
                     )
                     json_file = file_response.model_dump()
+                    print(json_file)
                     file_info["file_unique_id"] = file_response.video.file_unique_id
                     file_info["file_id"] = file_response.video.file_id
                     file_info["file_info"] = json_file["video"]
@@ -137,7 +139,7 @@ class SaverController(BaseController):
                 account_id=self.account.id,
                 link=self.link,
                 file_id=file_info["file_id"],
-                file_info=str(file_info["file_info"]),
+                file_info=str(file_info),
                 created_at=datetime.now(),
             )
             await session.execute(query)
