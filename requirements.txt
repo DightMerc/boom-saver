@@ -5,8 +5,8 @@ httpx==0.25.1
 https://github.com/aiogram/aiogram/archive/refs/heads/dev-3.x.zip
 sqlalchemy
 alembic
-git+https://github.com/DightMerc/instaloader.git
 psycopg2-binary
+git+https://github.com/DightMerc/instaloader.git
 asyncpg
 greenlet
 orjson
