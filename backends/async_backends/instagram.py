@@ -2,12 +2,12 @@ import os
 import time
 import traceback
 import uuid
+from sys import stderr
 from typing import Dict, List
 
 import httpx
 import stem
 from instaloader import Instaloader, Post
-from redis import Redis
 from stem import Signal
 from stem.control import Controller
 
@@ -45,7 +45,8 @@ class AsyncInstagramBackend(AsyncAbstractBackend):
         controller.authenticate(password=os.environ["TOR_PASSWORD"])
         controller.signal(Signal.NEWNYM)
         print(
-            f"TOR cport auth: {controller.is_authenticated()}. TOR NEW IDENTITY. Sleep 3 sec."
+            f"TOR cport auth: {controller.is_authenticated()}. TOR NEW IDENTITY. Sleep 3 sec.",
+            file=stderr,
         )
         time.sleep(3)
 
