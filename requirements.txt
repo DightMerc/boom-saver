@@ -6,8 +6,8 @@ https://github.com/aiogram/aiogram/archive/refs/heads/dev-3.x.zip
 sqlalchemy
 alembic
 psycopg2-binary
-git+https://github.com/DightMerc/instaloader.git
 asyncpg
+git+https://github.com/DightMerc/instaloader.git
 greenlet
 orjson
 requests_tor
