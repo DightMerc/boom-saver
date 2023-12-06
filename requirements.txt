@@ -8,8 +8,6 @@ alembic
 psycopg2-binary
 asyncpg
 greenlet
-git+https://github.com/DightMerc/instaloader.git
+selenium
+webdriver_manager
 orjson
-requests_tor
-redis
-PySocks

@@ -14,6 +14,15 @@ from stem.control import Controller
 from backends import AbstractBackendResult, AsyncAbstractBackend
 from backends.exceptions import ObjectNotFound, UnsupportedMediaType
 
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from selenium.webdriver.remote.webelement import WebElement
+from selenium.webdriver.support.wait import WebDriverWait
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.support import expected_conditions as EC
+
 
 class InstagramBackendResult(AbstractBackendResult):
     def __init__(self, link: str, file: str):
@@ -27,63 +36,43 @@ class AsyncInstagramBackend(AsyncAbstractBackend):
 
     def __init__(self, link: str, path: str):
         self.link = link
-        proxies = self._get_proxies()
-        self.backend: Instaloader = Instaloader(
-            sleep=True,
-            download_geotags=False,
-            download_comments=False,
-            download_pictures=False,
-            download_video_thumbnails=False,
-            sanitize_paths=True,
-            proxies=proxies,
-            max_connection_attempts=len(proxies),
-            iphone_support=False,
-        )
         self.path = path
 
-    def _get_proxies(self) -> List[Dict]:
-        tor_host = os.environ["TOR_HOST"]
-        control_port = stem.socket.ControlPort(tor_host, 9151)
-        controller = Controller(control_port)
-        controller.authenticate(password=os.environ["TOR_PASSWORD"])
-        controller.signal(Signal.NEWNYM)
-        print(
-            f"TOR cport auth: {controller.is_authenticated()}. TOR NEW IDENTITY. Sleep 3 sec.",
-            file=stderr,
-        )
-        time.sleep(3)
-
-        new_proxies = []
-        for port in range(9050, 9062):
-            proxy = {
-                "http": f"socks4://{tor_host}:{port}",
-                "https": f"socks4://{tor_host}:{port}",
-            }
-            new_proxies.append(proxy)
-        return new_proxies
-
     async def _get_file(self, post) -> Dict:
-        if post.is_video:
-            async with httpx.AsyncClient() as client:
-                response = await client.get(post.video_url)
-                self.file_path = os.path.join(self.path, f"{str(uuid.uuid4())}.mp4")
-                open(self.file_path, "wb").write(response.content)
-                return dict(file_path=self.file_path)
-        else:
-            raise UnsupportedMediaType
+        async with httpx.AsyncClient() as client:
+            response = await client.get(post)
+            self.file_path = os.path.join(self.path, f"{str(uuid.uuid4())}.mp4")
+            open(self.file_path, "wb").write(response.content)
+            return dict(file_path=self.file_path)
 
-    async def _find_object(self) -> Post:
+    async def _find_object(self) -> str:
         try:
-            post: Post = Post.from_shortcode(
-                self.backend.context, self.link.split("/")[-2]
+            options = Options()
+            options.add_argument("--headless")
+            options.add_argument("--no-sandbox")
+            options.add_argument("--disable-dev-shm-usage")
+            driver = webdriver.Chrome(
+                service=Service(ChromeDriverManager().install()), options=options
             )
-            return post
+
+            url = "https://www.instagram.com/reel/C0ZZ5NPIXqR/?igshid=MzRlODBiNWFlZA%3D%3D"
+
+            driver.get(url)
+            try:
+                video: WebElement = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.TAG_NAME, "video"))
+                )
+                url = video.get_property("src")
+            finally:
+                driver.quit()
+            return url
+
         except Exception:
             traceback.print_exc()
             raise ObjectNotFound
 
     async def get(self) -> InstagramBackendResult:
-        post: Post = await self._find_object()
+        post: str = await self._find_object()
         downloaded: Dict = await self._get_file(post=post)
         return InstagramBackendResult(
             link=self.link,
