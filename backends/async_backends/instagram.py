@@ -45,29 +45,23 @@ class AsyncInstagramBackend(AsyncAbstractBackend):
         self.path = path
 
     def _get_proxies(self) -> List[Dict]:
-        proxies = self.redis.get("proxies")
-        if not proxies:
-            with Controller.from_port(address="127.0.0.1", port=9151) as controller:
-                controller.authenticate(password=os.environ["TOR_PASSWORD"])
-                controller.signal(Signal.NEWNYM)
-                print(
-                    f"TOR cport auth: {controller.is_authenticated()}. TOR NEW IDENTITY. Sleep 3 sec."
-                )
-                time.sleep(3)
+        tor_host = os.environ["TOR_HOST"]
+        with Controller.from_port(address=tor_host, port=9151) as controller:
+            controller.authenticate(password=os.environ["TOR_PASSWORD"])
+            controller.signal(Signal.NEWNYM)
+            print(
+                f"TOR cport auth: {controller.is_authenticated()}. TOR NEW IDENTITY. Sleep 3 sec."
+            )
+            time.sleep(3)
 
-            new_proxies = []
-            for port in range(9050, 9062):
-                proxy = {
-                    "http": f"socks4://localhost:{port}",
-                    "https": f"socks4://localhost:{port}",
-                }
-                new_proxies.append(proxy)
-            self.redis.set("proxies", json.dumps(new_proxies))
-            return new_proxies
-        else:
-            proxies: List[Dict] = json.loads(proxies.decode("ascii"))
-            self.redis.delete("proxies")
-            return proxies
+        new_proxies = []
+        for port in range(9050, 9062):
+            proxy = {
+                "http": f"socks4://{tor_host}:{port}",
+                "https": f"socks4://{tor_host}:{port}",
+            }
+            new_proxies.append(proxy)
+        return new_proxies
 
     async def _get_file(self, post) -> Dict:
         if post.is_video:
