@@ -7,8 +7,8 @@ sqlalchemy
 alembic
 psycopg2-binary
 asyncpg
-git+https://github.com/DightMerc/instaloader.git
 greenlet
+git+https://github.com/DightMerc/instaloader.git
 orjson
 requests_tor
 redis
