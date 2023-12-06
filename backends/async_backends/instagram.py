@@ -5,6 +5,7 @@ import uuid
 from typing import Dict, List
 
 import httpx
+import stem
 from instaloader import Instaloader, Post
 from redis import Redis
 from stem import Signal
@@ -39,13 +40,14 @@ class AsyncInstagramBackend(AsyncAbstractBackend):
 
     def _get_proxies(self) -> List[Dict]:
         tor_host = os.environ["TOR_HOST"]
-        with Controller.from_port(address=tor_host, port=9151) as controller:
-            controller.authenticate(password=os.environ["TOR_PASSWORD"])
-            controller.signal(Signal.NEWNYM)
-            print(
-                f"TOR cport auth: {controller.is_authenticated()}. TOR NEW IDENTITY. Sleep 3 sec."
-            )
-            time.sleep(3)
+        control_port = stem.socket.ControlPort(tor_host, 9151)
+        controller = Controller(control_port)
+        controller.authenticate(password=os.environ["TOR_PASSWORD"])
+        controller.signal(Signal.NEWNYM)
+        print(
+            f"TOR cport auth: {controller.is_authenticated()}. TOR NEW IDENTITY. Sleep 3 sec."
+        )
+        time.sleep(3)
 
         new_proxies = []
         for port in range(9050, 9062):
