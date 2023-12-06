@@ -21,6 +21,27 @@ services:
       - ALLOW_EMPTY_PASSWORD=yes
     ports:
       - '6380:6379'
+  tor:
+    image: chriswayg/tor-server
+    restart: always
+    ports:
+      - '9050:9050'
+      - '9051:9051'
+      - '9052:9052'
+      - '9053:9053'
+      - '9054:9054'
+      - '9055:9055'
+      - '9056:9056'
+      - '9057:9057'
+      - '9058:9058'
+      - '9059:9059'
+      - '9060:9060'
+      - '9061:9061'
+      - '9062:9062'
+      - '9151:9151'
+    volumes:
+      - ./tor-data/:/var/lib/tor/
+      - ./torrc:/etc/tor/torrc
   app:
     build:
       context: .

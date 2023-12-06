@@ -1,17 +1,15 @@
 import json
 import os
-import random
 import time
+import traceback
 import uuid
-from typing import Dict
-
-from redis import Redis
+from typing import Dict, List
 
 import httpx
-import instaloader
-import orjson
 from instaloader import Instaloader, Post
-from requests_tor import RequestsTor
+from redis import Redis
+from stem import Signal
+from stem.control import Controller
 
 from backends import AbstractBackendResult, AsyncAbstractBackend
 from backends.exceptions import ObjectNotFound, UnsupportedMediaType
@@ -21,16 +19,6 @@ class InstagramBackendResult(AbstractBackendResult):
     def __init__(self, link: str, file: str):
         self.link = link
         self.file = file
-
-
-class MyRateController(instaloader.RateController):
-    def sleep(self, secs: float):
-        time_to_sleep = random.randint(1, 3)
-        print(f"Time to sleep: {time_to_sleep}")
-        time.sleep(time_to_sleep)
-
-    def count_per_sliding_window(self, query_type):
-        return 20
 
 
 class AsyncInstagramBackend(AsyncAbstractBackend):
@@ -45,10 +33,8 @@ class AsyncInstagramBackend(AsyncAbstractBackend):
             db=int(os.environ["REDIS_DB"]),
         )
         proxies = self._get_proxies()
-        print(f"PROXIES: {proxies}")
         self.backend: Instaloader = Instaloader(
             sleep=True,
-            rate_controller=lambda ctx: MyRateController(ctx),
             download_geotags=False,
             download_comments=False,
             download_pictures=False,
@@ -58,45 +44,30 @@ class AsyncInstagramBackend(AsyncAbstractBackend):
         )
         self.path = path
 
-    def _get_proxies(self) -> Dict:
+    def _get_proxies(self) -> List[Dict]:
         proxies = self.redis.get("proxies")
         if not proxies:
-            new_proxies = {}
-            for port in range(9050, 9062):
-                active = True
-                if port == 9050:
-                    active = False
-                new_proxies[f"{port}"] = dict(active=active)
+            with Controller.from_port(address="127.0.0.1", port=9151) as controller:
+                controller.authenticate(password=os.environ["TOR_PASSWORD"])
+                controller.signal(Signal.NEWNYM)
+                print(
+                    f"TOR cport auth: {controller.is_authenticated()}. TOR NEW IDENTITY. Sleep 3 sec."
+                )
+                time.sleep(3)
 
+            new_proxies = []
+            for port in range(9050, 9062):
+                proxy = {
+                    "http": f"socks4://localhost:{port}",
+                    "https": f"socks4://localhost:{port}",
+                }
+                new_proxies.append(proxy)
             self.redis.set("proxies", json.dumps(new_proxies))
-            return {
-                "https": f"socks4://localhost:9050",
-                "http": f"socks4://localhost:9050",
-            }
+            return new_proxies
         else:
-            ports: Dict = json.loads(proxies.decode("ascii"))
-            for port in ports:
-                if ports[port]["active"]:
-                    ports[port]["active"] = False
-                    self.redis.set("proxies", json.dumps(ports))
-                    return {
-                        "https": f"socks4://localhost:{port}",
-                        "http": f"socks4://localhost:{port}",
-                    }
-            requestor = RequestsTor(tor_ports=(9050,), tor_cport=9051)
-            requestor.new_id()
-            new_proxies = {}
-            for port in range(9050, 9062):
-                active = True
-                if port == 9050:
-                    active = False
-                new_proxies[f"{port}"] = dict(active=active)
-
-            self.redis.set("proxies", json.dumps(new_proxies))
-            return {
-                "https": f"socks4://localhost:9050",
-                "http": f"socks4://localhost:9050",
-            }
+            proxies: List[Dict] = json.loads(proxies.decode("ascii"))
+            self.redis.delete("proxies")
+            return proxies
 
     async def _get_file(self, post) -> Dict:
         if post.is_video:
@@ -115,6 +86,7 @@ class AsyncInstagramBackend(AsyncAbstractBackend):
             )
             return post
         except Exception:
+            traceback.print_exc()
             raise ObjectNotFound
 
     async def get(self) -> InstagramBackendResult:

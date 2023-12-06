@@ -1,6 +1,6 @@
 pytube==15.0.0
-git+https://github.com/DightMerc/instaloader.git
 yandex_music==2.1.1
+git+https://github.com/DightMerc/instaloader.git
 mutagen==1.47.0
 httpx==0.25.1
 https://github.com/aiogram/aiogram/archive/refs/heads/dev-3.x.zip
