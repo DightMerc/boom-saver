@@ -29,6 +29,7 @@ class AsyncInstagramBackend(AsyncAbstractBackend):
         self.link = link
         proxies = self._get_proxies()
         self.backend: Instaloader = Instaloader(
+            sleep=True,
             download_geotags=False,
             download_comments=False,
             download_pictures=False,
