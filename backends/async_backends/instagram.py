@@ -1,4 +1,3 @@
-import json
 import os
 import time
 import traceback
@@ -27,12 +26,6 @@ class AsyncInstagramBackend(AsyncAbstractBackend):
 
     def __init__(self, link: str, path: str):
         self.link = link
-        self.redis = Redis(
-            host=os.environ["REDIS_HOST"],
-            port=int(os.environ["REDIS_PORT"]),
-            db=int(os.environ["REDIS_DB"]),
-        )
-        proxies = self._get_proxies()
         self.backend: Instaloader = Instaloader(
             sleep=True,
             download_geotags=False,
@@ -40,7 +33,7 @@ class AsyncInstagramBackend(AsyncAbstractBackend):
             download_pictures=False,
             download_video_thumbnails=False,
             sanitize_paths=True,
-            proxies=proxies,
+            proxies=self._get_proxies(),
         )
         self.path = path
 
