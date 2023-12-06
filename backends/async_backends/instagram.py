@@ -27,6 +27,7 @@ class AsyncInstagramBackend(AsyncAbstractBackend):
 
     def __init__(self, link: str, path: str):
         self.link = link
+        proxies = self._get_proxies()
         self.backend: Instaloader = Instaloader(
             sleep=True,
             download_geotags=False,
@@ -34,7 +35,8 @@ class AsyncInstagramBackend(AsyncAbstractBackend):
             download_pictures=False,
             download_video_thumbnails=False,
             sanitize_paths=True,
-            proxies=self._get_proxies(),
+            proxies=proxies,
+            max_connection_attempts=len(proxies),
         )
         self.path = path
 
