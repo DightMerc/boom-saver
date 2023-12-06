@@ -48,9 +48,7 @@ class AsyncInstagramBackend(AsyncAbstractBackend):
                 service=Service(ChromeDriverManager().install()), options=options
             )
 
-            url = "https://www.instagram.com/reel/C0ZZ5NPIXqR/?igshid=MzRlODBiNWFlZA%3D%3D"
-
-            driver.get(url)
+            driver.get(self.link)
             try:
                 video: WebElement = WebDriverWait(driver, 10).until(
                     EC.presence_of_element_located((By.TAG_NAME, "video"))
