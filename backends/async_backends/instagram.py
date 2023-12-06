@@ -1,27 +1,20 @@
 import os
-import time
 import traceback
 import uuid
-from sys import stderr
-from typing import Dict, List
+from typing import Dict
 
 import httpx
-import stem
-from instaloader import Instaloader, Post
-from stem import Signal
-from stem.control import Controller
-
-from backends import AbstractBackendResult, AsyncAbstractBackend
-from backends.exceptions import ObjectNotFound, UnsupportedMediaType
-
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
+from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.support import expected_conditions as EC
+
+from backends import AbstractBackendResult, AsyncAbstractBackend
+from backends.exceptions import ObjectNotFound
 
 
 class InstagramBackendResult(AbstractBackendResult):
