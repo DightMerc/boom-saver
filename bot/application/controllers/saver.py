@@ -86,14 +86,18 @@ class SaverController(BaseController):
             bot=self.message.bot, chat_id=self.message.chat.id
         ):
             response_file = FSInputFile(path=file)
-            return await self.message.answer_document(document=response_file)
+            return await self.message.answer_document(
+                document=response_file, caption="Saved by @bsaverbot"
+            )
 
     async def _make_video_response(self, file):
         async with ChatActionSender.upload_video(
             bot=self.message.bot, chat_id=self.message.chat.id
         ):
             response_file = FSInputFile(path=file)
-            return await self.message.answer_document(document=response_file)
+            return await self.message.answer_document(
+                document=response_file, caption="Saved by @bsaverbot"
+            )
 
     @staticmethod
     async def _validate_link(link: str) -> None:
