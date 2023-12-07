@@ -13,3 +13,4 @@ webdriver_manager
 orjson
 hachoir
 moviepy
+pyrogram

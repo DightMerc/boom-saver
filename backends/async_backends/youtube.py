@@ -62,7 +62,7 @@ class AsyncYoutubeBackend(AsyncAbstractBackend):
 
     async def get(self) -> YoutubeBackendResult:
         stream: Stream = await self._find_object()
-        await self.validate_file_size(stream=stream)
+        # await self.validate_file_size(stream=stream)
         downloaded: Dict = await self._get_file(stream=stream)
         return YoutubeBackendResult(
             link=self.link,

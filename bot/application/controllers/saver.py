@@ -1,7 +1,9 @@
+import json
 import os.path
 import uuid
 from datetime import datetime
-from typing import Dict, Optional
+from io import BytesIO
+from typing import Dict, Any, Tuple
 
 from aiogram.types import Message, FSInputFile, BufferedInputFile
 from aiogram.utils.chat_action import ChatActionSender
@@ -9,6 +11,7 @@ from hachoir.metadata import extractMetadata
 from hachoir.metadata.video import MP4Metadata
 from hachoir.parser import createParser
 from moviepy.video.io.VideoFileClip import VideoFileClip
+from pyrogram import Client
 from sqlalchemy import insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from yandex_music import Track
@@ -40,7 +43,7 @@ class SaverController(BaseController):
             message: Message = await self.message.answer(
                 dict(en="Search...", ru="Искаю... ")[self.user.language_code],
             )
-            file_id = await self._get_file_by_link()
+            file_id, fmt = await self._get_file_by_link()
             if file_id:
                 await self.message.bot.delete_message(
                     chat_id=self.message.chat.id, message_id=message.message_id
@@ -50,43 +53,57 @@ class SaverController(BaseController):
                         self.user.language_code
                     ],
                 )
-                await self.message.answer_document(
-                    document=file_id,
-                    caption="captured by @bsaverbot",
-                )
+                if fmt == "mp4":
+                    await self.message.answer_video(
+                        video=file_id,
+                        caption="captured by @bsaverbot",
+                    )
+                else:
+                    await self.message.answer_audio(
+                        audio=file_id,
+                        caption="captured by @bsaverbot",
+                    )
             else:
                 result = await self._prepare_file(link=self.link)
-                await self.message.bot.edit_message_text(
-                    text=dict(en="Found.", ru="Нашов.")[self.user.language_code],
-                    chat_id=self.message.chat.id,
-                    message_id=message.message_id,
-                )
-                self.logger.debug(result.__dict__)
-                fmt = os.path.splitext(result.file)[1].replace(".", "")
-                file_info = dict(format=fmt)
-                if fmt == "mp3":
-                    file_response: Message = await self._make_audio_response(
-                        result=result,
-                    )
-                    json_file = file_response.model_dump()
-                    file_info["file_unique_id"] = file_response.audio.file_unique_id
-                    file_info["file_id"] = file_response.audio.file_id
-                    file_info["file_info"] = json_file["audio"]
+                if not await self._is_more_than_50m(file=result.file):
+                    await self._classic_response(result=result, message=message)
                 else:
-                    file_response: Message = await self._make_video_response(
-                        result=result
-                    )
-                    print(file_response.model_dump())
-                    json_file = file_response.model_dump()
-                    file_info["file_unique_id"] = file_response.video.file_unique_id
-                    file_info["file_id"] = file_response.video.file_id
-                    file_info["file_info"] = json_file["video"]
+                    await self._more_than_50mb_response(result=result, message=message)
 
-                await self._create_file(file_info=file_info)
+    async def _is_more_than_50m(self, file: str) -> bool:
+        return os.path.getsize(filename=file) / 1000 / 1000 > 50
 
-                await self.message.bot.delete_message(
-                    chat_id=self.message.chat.id, message_id=message.message_id
-                )
+    async def _classic_response(self, result, message: Message):
+        await self.message.bot.edit_message_text(
+            text=dict(en="Found.", ru="Нашов.")[self.user.language_code],
+            chat_id=self.message.chat.id,
+            message_id=message.message_id,
+        )
+        self.logger.debug(result.__dict__)
+        fmt = os.path.splitext(result.file)[1].replace(".", "")
+        file_info = dict(format=fmt)
+        if fmt == "mp3":
+            file_response: Message = await self._make_audio_response(
+                result=result,
+            )
+            json_file = file_response.model_dump()
+            file_info["file_unique_id"] = file_response.audio.file_unique_id
+            file_info["file_id"] = file_response.audio.file_id
+            file_info["file_info"] = json_file["audio"]
+        else:
+            file_response: Message = await self._make_video_response(result=result)
+            print(file_response.model_dump())
+            json_file = file_response.model_dump()
+            file_info["file_unique_id"] = file_response.video.file_unique_id
+            file_info["file_id"] = file_response.video.file_id
+            file_info["file_info"] = json_file["video"]
+
+        await self._create_file(file_info=file_info)
+        os.remove(result.file)
+
+        await self.message.bot.delete_message(
+            chat_id=self.message.chat.id, message_id=message.message_id
+        )
 
     async def _make_audio_response(self, result):
         async with ChatActionSender.upload_voice(
@@ -200,11 +217,68 @@ class SaverController(BaseController):
             await session.execute(query)
             await session.commit()
 
-    async def _get_file_by_link(self) -> Optional[str]:
+    async def _get_file_by_link(self) -> Tuple[str, str]:
         async with self.session() as session:
             session: AsyncSession
             file: File = (
                 await session.scalars(select(File).filter(File.link == self.link))
             ).first()
             if file:
-                return file.file_id
+                file_info_str = (
+                    file.file_info.replace("'", '"')
+                    .replace("True", "true")
+                    .replace("False", "false")
+                )
+                file_info = json.loads(file_info_str)
+                return (file.file_id, file_info["format"])
+            return None, None
+
+    async def _make_pyro_video_response(self, pyro: Client, result: Any):
+        meta: Dict = await self.generate_meta(file=result.file)
+        thumbnail: bytes = await self.generate_thumbnail(file=result.file)
+        return await pyro.send_video(
+            chat_id="bsavertestbot",
+            video=result.file,
+            duration=meta["duration"],
+            width=meta["width"],
+            height=meta["height"],
+            thumb=BytesIO(thumbnail),
+        )
+
+    async def _more_than_50mb_response(self, result, message: Message):
+        app = Client(
+            "bsaverbot",
+            api_hash=os.environ["TELEGRAM_API_HASH"],
+            api_id=os.environ["TELEGRAM_API_ID"],
+        )
+        await self.message.bot.edit_message_text(
+            text=dict(en="Found.", ru="Нашов.")[self.user.language_code],
+            chat_id=self.message.chat.id,
+            message_id=message.message_id,
+        )
+        self.logger.debug(result.__dict__)
+        fmt = os.path.splitext(result.file)[1].replace(".", "")
+        file_info = dict(format=fmt)
+        if fmt == "mp4":
+            await app.start()
+            file_response = await self._make_pyro_video_response(
+                pyro=app, result=result
+            )
+            await app.stop()
+            file_response_str = str(file_response)
+            json_file = json.loads(file_response_str)
+            file_info["file_unique_id"] = file_response.video.file_unique_id
+            file_info["file_id"] = file_response.video.file_id
+            file_info["file_info"] = json_file["video"]
+
+            await self._create_file(file_info=file_info)
+            os.remove(result.file)
+
+            await self.message.bot.delete_message(
+                chat_id=self.message.chat.id, message_id=message.message_id
+            )
+
+            await self.message.answer_video(
+                video=str(file_response.video.file_id),
+                caption="captured by @bsaverbot",
+            )

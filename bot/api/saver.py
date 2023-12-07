@@ -11,7 +11,8 @@ saver_router = Router(name=__name__)
 
 class HttpFilter(Filter):
     async def __call__(self, message: Message) -> bool:
-        return message.text.strip().startswith("http")
+        if message.text:
+            return message.text.strip().startswith("http")
 
 
 @saver_router.message(HttpFilter())
