@@ -11,10 +11,11 @@ from backends.exceptions import ObjectNotFound
 
 
 class YandexMusicBackendResult(AbstractBackendResult):
-    def __init__(self, link: str, file: str, title: str):
+    def __init__(self, link: str, file: str, title: str, track: Track):
         self.link = link
         self.file = file
         self.title = title
+        self.track = track
 
 
 class AsyncYandexMusicBackend(AsyncAbstractBackend):
@@ -39,7 +40,7 @@ class AsyncYandexMusicBackend(AsyncAbstractBackend):
         max_bitrate = self._get_max_bitrate()
         track.download(filename=self.file_path, bitrate_in_kbps=max_bitrate)
         await self._add_id3_tags(track=track)
-        return dict(file_path=self.file_path, title=title)
+        return dict(file_path=self.file_path, title=title, track=track)
 
     async def _add_id3_tags(self, track: Track):
         try:
@@ -88,5 +89,8 @@ class AsyncYandexMusicBackend(AsyncAbstractBackend):
         track: Track = await self._find_object()
         downloaded: Dict = await self._get_file(track=track)
         return YandexMusicBackendResult(
-            link=self.link, file=downloaded["file_path"], title=downloaded["title"]
+            link=self.link,
+            file=downloaded["file_path"],
+            title=downloaded["title"],
+            track=track,
         )

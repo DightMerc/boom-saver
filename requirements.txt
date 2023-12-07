@@ -11,3 +11,5 @@ greenlet
 selenium
 webdriver_manager
 orjson
+hachoir
+moviepy

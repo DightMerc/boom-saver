@@ -1,5 +1,5 @@
 import os
-from typing import Dict, Callable
+from typing import Dict, Callable, Any
 
 from pytube import YouTube, Stream
 from pytube.exceptions import VideoUnavailable
@@ -10,7 +10,12 @@ from backends.exceptions import ObjectNotFound, EntityTooLarge
 
 class YoutubeBackendResult(AbstractBackendResult):
     def __init__(
-        self, link: str, file: str, title: str, extension: str, file_size: int
+        self,
+        link: str,
+        file: str,
+        title: str,
+        extension: str,
+        file_size: int,
     ):
         self.link = link
         self.file = file
