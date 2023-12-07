@@ -237,7 +237,7 @@ class SaverController(BaseController):
         meta: Dict = await self.generate_meta(file=result.file)
         thumbnail: bytes = await self.generate_thumbnail(file=result.file)
         return await pyro.send_video(
-            chat_id="bsavertestbot",
+            chat_id=os.environ["TELEGRAM_BOT_USERNAME"],
             video=result.file,
             duration=meta["duration"],
             width=meta["width"],
@@ -246,6 +246,11 @@ class SaverController(BaseController):
         )
 
     async def _more_than_50mb_response(self, result, message: Message):
+        await self.message.answer(
+            text=dict(
+                en="File is large. Downloading...", ru="Файл большоевый. Скачиваю..."
+            )[self.message.from_user.language_code]
+        )
         app = Client(
             "bsaverbot",
             api_hash=os.environ["TELEGRAM_API_HASH"],
