@@ -69,3 +69,7 @@ class AsyncInstagramBackend(AsyncAbstractBackend):
             link=self.link,
             file=downloaded["file_path"],
         )
+
+    async def get_link(self) -> str:
+        link: str = await self._find_object()
+        return link

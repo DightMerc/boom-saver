@@ -75,3 +75,13 @@ class AsyncYoutubeBackend(AsyncAbstractBackend):
     async def validate_file_size(self, stream: Stream):
         if int(stream.filesize_mb) > int(os.environ.get("MAX_FILE_SIZE")):
             raise EntityTooLarge
+
+    async def get_link(self) -> str:
+        stream: Stream = await self._find_object()
+        print(stream.filesize_mb)
+        print(
+            self.backend(self.link).streams.filter(
+                progressive=self.progressive, file_extension=self.extension
+            )
+        )
+        return stream.url

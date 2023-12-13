@@ -1,5 +1,8 @@
 import os
+import traceback
+import urllib
 from typing import Dict, List, Callable
+from urllib.parse import urlencode, urlparse, urlunparse, parse_qs
 
 import mutagen
 from mutagen.easyid3 import EasyID3
@@ -80,9 +83,11 @@ class AsyncYandexMusicBackend(AsyncAbstractBackend):
 
     async def _find_object(self) -> Track:
         try:
-            self.track_id = int(os.path.split(self.link)[1])
+            url = urlparse(self.link)
+            self.track_id = int(os.path.split(url.path)[1])
             return self.backend.tracks([self.track_id])[0]
         except Exception:
+            traceback.print_exc()
             raise ObjectNotFound
 
     async def get(self) -> YandexMusicBackendResult:
@@ -94,3 +99,14 @@ class AsyncYandexMusicBackend(AsyncAbstractBackend):
             title=downloaded["title"],
             track=track,
         )
+
+    async def get_link(self) -> str:
+        track: Track = await self._find_object()
+        infos: List[DownloadInfo] = track.get_download_info()
+        max_bitrate = 0
+        best = None
+        for info in enumerate(infos):
+            if info[1]["bitrate_in_kbps"] > max_bitrate:
+                max_bitrate = info[1]["bitrate_in_kbps"]
+                best = info[1]
+        return best.get_direct_link()

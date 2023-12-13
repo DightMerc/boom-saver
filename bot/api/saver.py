@@ -5,6 +5,7 @@ from aiogram.types import Message, InlineQuery, ChosenInlineResult
 from bot.application.controllers.inline_saver import InlineSaverController
 from bot.application.controllers.inline_selector import InlineSelectorController
 from bot.application.controllers.saver import SaverController
+from bot.application.controllers.simple_saver import SimpleSaverController
 
 saver_router = Router(name=__name__)
 
@@ -18,6 +19,12 @@ class HttpFilter(Filter):
 @saver_router.message(HttpFilter())
 async def link_message_handler(message: Message) -> None:
     return await SaverController(message=message).call()
+
+
+#
+# @saver_router.message(HttpFilter())
+# async def link_message_handler(message: Message) -> None:
+#     return await SimpleSaverController(message=message).call()
 
 
 @saver_router.inline_query()
